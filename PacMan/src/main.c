@@ -3,54 +3,7 @@
 #include <string.h>
 #include "types.h"
 #include "gui.h"
-
-/* 全局游戏状态 */
-GameState *g_game_state = NULL;
-
-/* 初始化游戏状态 */
-int init_game_state(void) {
-    int i, j;
-    
-    g_game_state = (GameState*)malloc(sizeof(GameState));
-    if (!g_game_state) {
-        fprintf(stderr, "错误: 无法分配游戏状态内存\n");
-        return -1;
-    }
-    
-    /* 初始化棋盘 */
-    for (i = 0; i < BOARD_HEIGHT; i++) {
-        for (j = 0; j < BOARD_WIDTH; j++) {
-            /* 边界设为墙 */
-            if (i == 0 || i == BOARD_HEIGHT-1 || j == 0 || j == BOARD_WIDTH-1) {
-                g_game_state->board[i][j] = CELL_WALL;
-            } else {
-                g_game_state->board[i][j] = CELL_DOT;
-            }
-        }
-    }
-    
-    /* 设置玩家初始位置 */
-    g_game_state->player_pos.x = 1;
-    g_game_state->player_pos.y = 1;
-    g_game_state->board[1][1] = CELL_PLAYER;
-    
-    /* 初始化游戏统计 */
-    g_game_state->dots_collected = 0;
-    g_game_state->total_dots = (BOARD_WIDTH-2) * (BOARD_HEIGHT-2) - 1; /* 减去玩家位置 */
-    g_game_state->moves_count = 0;
-    g_game_state->game_over = 0;
-    g_game_state->game_won = 0;
-    
-    return 0;
-}
-
-/* 清理游戏状态 */
-void cleanup_game_state(void) {
-    if (g_game_state) {
-        free(g_game_state);
-        g_game_state = NULL;
-    }
-}
+#include "game.h"
 
 /* 打印使用说明 */
 void print_usage(const char *program_name) {

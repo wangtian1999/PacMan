@@ -9,7 +9,7 @@ LIBPATH = -L/usr/local/lib
 SRCDIR = src
 OBJDIR = obj
 # 原始版本只编译main.c和gui.c
-SOURCES = $(SRCDIR)/main.c $(SRCDIR)/gui.c
+SOURCES = $(SRCDIR)/main.c $(SRCDIR)/gui.c $(SRCDIR)/game.c
 OBJECTS = $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 # 可执行文件目标
 TARGET = pacman

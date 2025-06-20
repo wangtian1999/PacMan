@@ -3,6 +3,7 @@
 #include <string.h>
 #include "gui.h"
 #include "types.h"
+#include "game.h"
 
 /* 全局GUI组件 */
 Widget g_main_window;
@@ -62,18 +63,39 @@ int init_gui(int argc, char *argv[]) {
     printf("绘图区域创建成功\n");
     
     /* 创建方向控制按钮 */
+    printf("正在创建方向控制按钮...\n");
     button_up = MakeButton("Up", button_up_callback, NULL);
     button_down = MakeButton("Down", button_down_callback, NULL);
     button_left = MakeButton("Left", button_left_callback, NULL);
     button_right = MakeButton("Right", button_right_callback, NULL);
     
+    if (!button_up || !button_down || !button_left || !button_right) {
+        fprintf(stderr, "错误: 方向按钮创建失败\n");
+        return -1;
+    }
+    printf("方向控制按钮创建成功\n");
+    
     /* 创建功能按钮 */
+    printf("正在创建功能按钮...\n");
     button_rejouer = MakeButton("Restart", button_rejouer_callback, NULL);
     button_aide = MakeButton("Help", button_aide_callback, NULL);
     button_quit = MakeButton("Quit", button_quit_callback, NULL);
     
+    if (!button_rejouer || !button_aide || !button_quit) {
+        fprintf(stderr, "错误: 功能按钮创建失败\n");
+        return -1;
+    }
+    printf("功能按钮创建成功\n");
+    
     /* 创建状态显示标签 */
+    printf("正在创建状态标签...\n");
     g_status_label = MakeLabel("Moves: 0  Collected: 0  Remaining: 0");
+    
+    if (!g_status_label) {
+        fprintf(stderr, "错误: 状态标签创建失败\n");
+        return -1;
+    }
+    printf("状态标签创建成功\n");
     
     /* 设置布局 - 添加错误检查 */
     printf("开始设置GUI布局...\n");
@@ -85,46 +107,57 @@ int init_gui(int argc, char *argv[]) {
         return -1;
     }
     
-    /* 绘图区域布局 */
+    /* 绘图区域布局 - libsx中绘图区域自动布局 */
     printf("设置绘图区域布局...\n");
-    /* 绘图区域不需要相对于主窗口设置位置，它已经是主窗口的子组件 */
-    printf("绘图区域布局设置完成（无需额外设置）\n");
+    /* 绘图区域不需要相对于主窗口设置位置，它会自动成为主窗口的第一个子组件 */
+    printf("绘图区域布局设置完成（自动布局）\n");
     
-    /* 设置方向按钮布局 */
+    /* 设置方向按钮布局 - 独立布局避免链式依赖 */
     printf("设置方向按钮布局...\n");
-    if (button_up && g_drawing_area) {
-        SetWidgetPos(button_up, PLACE_UNDER, g_drawing_area, NO_CARE, NULL);
-        printf("上按钮布局设置完成\n");
-    }
-    if (button_left && button_up) {
-        SetWidgetPos(button_left, PLACE_UNDER, button_up, NO_CARE, NULL);
+    
+    /* 所有方向按钮都直接相对于绘图区域布局 */
+    if (button_left && g_drawing_area) {
+        SetWidgetPos(button_left, PLACE_UNDER, g_drawing_area, NO_CARE, NULL);
         printf("左按钮布局设置完成\n");
     }
-    if (button_down && button_left) {
-        SetWidgetPos(button_down, PLACE_RIGHT, button_left, NO_CARE, NULL);
+    
+    if (button_down && g_drawing_area) {
+        SetWidgetPos(button_down, PLACE_UNDER, g_drawing_area, PLACE_RIGHT, button_left);
         printf("下按钮布局设置完成\n");
     }
-    if (button_right && button_down) {
-        SetWidgetPos(button_right, PLACE_RIGHT, button_down, NO_CARE, NULL);
+    
+    if (button_up && g_drawing_area) {
+        SetWidgetPos(button_up, PLACE_UNDER, g_drawing_area, PLACE_RIGHT, button_down);
+        printf("上按钮布局设置完成\n");
+    }
+    
+    if (button_right && g_drawing_area) {
+        SetWidgetPos(button_right, PLACE_UNDER, g_drawing_area, PLACE_RIGHT, button_up);
         printf("右按钮布局设置完成\n");
     }
     
-    /* 功能按钮布局 */
+    /* 功能按钮布局 - 独立布局避免链式依赖 */
     printf("设置功能按钮布局...\n");
+    
+    /* 重新开始按钮在左按钮下方 */
     if (button_rejouer && button_left) {
         SetWidgetPos(button_rejouer, PLACE_UNDER, button_left, NO_CARE, NULL);
         printf("重新开始按钮布局设置完成\n");
     }
-    if (button_aide && button_rejouer) {
-        SetWidgetPos(button_aide, PLACE_RIGHT, button_rejouer, NO_CARE, NULL);
+    
+    /* 帮助按钮在左按钮下方，重新开始按钮右侧 */
+    if (button_aide && button_left) {
+        SetWidgetPos(button_aide, PLACE_UNDER, button_left, PLACE_RIGHT, button_rejouer);
         printf("帮助按钮布局设置完成\n");
     }
-    if (button_quit && button_aide) {
-        SetWidgetPos(button_quit, PLACE_RIGHT, button_aide, NO_CARE, NULL);
+    
+    /* 退出按钮在左按钮下方，帮助按钮右侧 */
+    if (button_quit && button_left) {
+        SetWidgetPos(button_quit, PLACE_UNDER, button_left, PLACE_RIGHT, button_aide);
         printf("退出按钮布局设置完成\n");
     }
     
-    /* 状态标签布局 */
+    /* 状态标签布局 - 在功能按钮下方 */
     printf("设置状态标签布局...\n");
     if (g_status_label && button_rejouer) {
         SetWidgetPos(g_status_label, PLACE_UNDER, button_rejouer, NO_CARE, NULL);
@@ -134,10 +167,19 @@ int init_gui(int argc, char *argv[]) {
     printf("GUI布局设置完成\n");
     
     /* 设置键盘事件处理 */
+    printf("设置键盘事件处理...\n");
     SetKeypressCB(g_main_window, key_press_callback);
+    printf("键盘事件处理设置完成\n");
+    
+    /* 获取标准颜色 - libsx要求在ShowDisplay之前调用 */
+    printf("获取标准颜色...\n");
+    GetStandardColors();
+    printf("标准颜色获取完成\n");
     
     /* 显示窗口 */
+    printf("显示窗口...\n");
     ShowDisplay();
+    printf("窗口显示完成\n");
     
     /* 更新初始显示 */
     update_status_display();
@@ -248,20 +290,19 @@ void update_status_display(void) {
     
     if (!g_game_state) {
         snprintf(status_text, sizeof(status_text), "Game Status: Not Initialized");
-    } else if (g_game_state->game_over) {
-        if (g_game_state->game_won) {
+    } else if (is_game_over()) {
+        if (is_game_won()) {
             snprintf(status_text, sizeof(status_text), 
                     "Congratulations! You Won in %d moves! Press R to restart", 
-                    g_game_state->moves_count);
+                    get_moves_count());
         } else {
             snprintf(status_text, sizeof(status_text), "Game Over - Press R to restart");
         }
     } else {
-        int remaining_dots = g_game_state->total_dots - g_game_state->dots_collected;
         snprintf(status_text, sizeof(status_text), 
                 "Remaining: %d | Moves: %d | Use WASD or buttons to move", 
-                remaining_dots, 
-                g_game_state->moves_count);
+                get_remaining_dots(), 
+                get_moves_count());
     }
     
     /* 更新状态标签 */
@@ -272,10 +313,11 @@ void update_status_display(void) {
 
 /* 移动玩家函数 */
 void move_player(Direction dir) {
-    if (!g_game_state || g_game_state->game_over) return;
+    if (!g_game_state || is_game_over()) return;
     
-    int new_x = g_game_state->player_pos.x;
-    int new_y = g_game_state->player_pos.y;
+    PlayerPosition current_pos = get_player_position();
+    int new_x = current_pos.x;
+    int new_y = current_pos.y;
     
     switch (dir) {
         case DIR_UP: new_y--; break;
@@ -285,38 +327,24 @@ void move_player(Direction dir) {
         default: return;
     }
     
-    /* 边界检查 */
-    if (new_x < 0 || new_x >= BOARD_WIDTH || 
-        new_y < 0 || new_y >= BOARD_HEIGHT) {
-        printf("移动超出边界\n");
-        return;
-    }
-    
-    /* 墙壁检查 */
-    if (g_game_state->board[new_y][new_x] == CELL_WALL) {
-        printf("撞墙了！\n");
-        return;
-    }
-    
-    /* 收集豆子 */
-    if (g_game_state->board[new_y][new_x] == CELL_DOT) {
-        g_game_state->dots_collected++;
-        printf("收集了一个豆子！剩余: %d\n", 
-               g_game_state->total_dots - g_game_state->dots_collected);
-    }
-    
-    /* 更新位置 */
-    g_game_state->board[g_game_state->player_pos.y][g_game_state->player_pos.x] = CELL_EMPTY;
-    g_game_state->player_pos.x = new_x;
-    g_game_state->player_pos.y = new_y;
-    g_game_state->board[new_y][new_x] = CELL_PLAYER;
-    g_game_state->moves_count++;
-    
-    /* 检查胜利条件 */
-    if (g_game_state->dots_collected >= g_game_state->total_dots) {
-        g_game_state->game_won = 1;
-        g_game_state->game_over = 1;
-        printf("恭喜！您赢了！用了 %d 步完成游戏！\n", g_game_state->moves_count);
+    /* 尝试移动玩家 */
+    if (move_player_to(new_x, new_y)) {
+        /* 移动成功，输出调试信息 */
+        if (check_dot_collection(new_x, new_y)) {
+            printf("Collected a dot! Remaining: %d\n", get_remaining_dots());
+        }
+        
+        /* 检查胜利条件 */
+        if (is_game_won()) {
+            printf("Congratulations! You won in %d moves!\n", get_moves_count());
+        }
+    } else {
+        /* 移动失败，输出调试信息 */
+        if (!is_within_bounds(new_x, new_y)) {
+            printf("Move out of bounds\n");
+        } else if (is_wall_collision(new_x, new_y)) {
+            printf("Hit a wall!\n");
+        }
     }
     
     update_display();
@@ -349,38 +377,14 @@ void button_right_callback(Widget w, void *data) {
 
 void button_rejouer_callback(Widget w, void *data) {
     (void)w; (void)data; /* 避免未使用参数警告 */
-    printf("重新开始游戏\n");
+    printf("Restarting game\n");
     
     if (!g_game_state) return;
     
-    /* 重新初始化游戏状态 */
-    int i, j;
+    /* 使用新的重置函数 */
+    reset_game_state();
     
-    /* 重新初始化棋盘 */
-    for (i = 0; i < BOARD_HEIGHT; i++) {
-        for (j = 0; j < BOARD_WIDTH; j++) {
-            /* 边界设为墙 */
-            if (i == 0 || i == BOARD_HEIGHT-1 || j == 0 || j == BOARD_WIDTH-1) {
-                g_game_state->board[i][j] = CELL_WALL;
-            } else {
-                g_game_state->board[i][j] = CELL_DOT;
-            }
-        }
-    }
-    
-    /* 重置玩家位置 */
-    g_game_state->player_pos.x = 1;
-    g_game_state->player_pos.y = 1;
-    g_game_state->board[1][1] = CELL_PLAYER;
-    
-    /* 重置游戏统计 */
-    g_game_state->dots_collected = 0;
-    g_game_state->total_dots = (BOARD_WIDTH-2) * (BOARD_HEIGHT-2) - 1;
-    g_game_state->moves_count = 0;
-    g_game_state->game_over = 0;
-    g_game_state->game_won = 0;
-    
-    printf("游戏已重新开始！\n");
+    printf("Game restarted!\n");
     update_display();
 }
 
