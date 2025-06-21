@@ -40,33 +40,24 @@ static long get_current_time_ms(void) {
 static void init_ghosts_info(void) {
     ghost_count = 0;
     
-    printf("Scanning board for ghosts...\n");
-    printf("Board size: %dx%d\n", get_board_width(), get_board_height());
-    
     for (int y = 0; y < get_board_height(); y++) {
         for (int x = 0; x < get_board_width(); x++) {
             CellType cell = get_board_cell(x, y);
             if (cell == CELL_GHOST_RED || cell == CELL_GHOST_BLUE ||
                 cell == CELL_GHOST_PURPLE || cell == CELL_GHOST_ORANGE) {
-                printf("Found ghost at (%d,%d), type: %d\n", x, y, cell);
                 if (ghost_count < 4) {
                     ghosts[ghost_count].x = x;
                     ghosts[ghost_count].y = y;
                     ghosts[ghost_count].type = cell;
-                    ghosts[ghost_count].original_cell = CELL_EMPTY; /* 假设幽灵初始在空地上 */
+                    ghosts[ghost_count].original_cell = CELL_EMPTY;
                     ghosts[ghost_count].last_direction = DIR_RIGHT;
                     ghosts[ghost_count].zigzag_steps = 0;
                     ghosts[ghost_count].zigzag_direction = DIR_RIGHT;
-                    printf("Added ghost %d at position (%d,%d)\n", ghost_count, x, y);
                     ghost_count++;
-                } else {
-                    printf("Warning: Too many ghosts found, ignoring ghost at (%d,%d)\n", x, y);
                 }
             }
         }
     }
-    
-    printf("Ghost initialization complete. Total ghosts: %d\n", ghost_count);
 }
 
 /* 检查位置是否有效（幽灵可以移动到的位置） */
@@ -262,21 +253,15 @@ static void move_ghost(int ghost_index) {
 
 /* 设置当前算法 */
 void set_algorithm(int algorithm_type) {
-    printf("set_algorithm called with type: %d\n", algorithm_type);
-    
     current_algorithm = (AlgorithmType)algorithm_type;
-    printf("Current algorithm set to: %d\n", current_algorithm);
     
     /* 初始化幽灵信息 */
-    printf("Initializing ghosts info...\n");
     init_ghosts_info();
-    printf("Found %d ghosts on board\n", ghost_count);
     
     /* 重置算法状态 */
     for (int i = 0; i < ghost_count; i++) {
         ghosts[i].zigzag_steps = 0;
         ghosts[i].zigzag_direction = DIR_RIGHT;
-        printf("Ghost %d at position (%d,%d), type: %d\n", i, ghosts[i].x, ghosts[i].y, ghosts[i].type);
     }
     
     /* 初始化随机数种子 */
@@ -284,34 +269,25 @@ void set_algorithm(int algorithm_type) {
     
     /* 重置移动时间 */
     last_move_time = get_current_time_ms();
-    printf("Algorithm setup complete. Move interval: %d ms\n", move_interval);
 }
 
 /* 更新幽灵移动（由定时器调用） */
 void update_ghost_movement(void) {
     if (current_algorithm == ALGO_NONE) {
-        printf("update_ghost_movement: No algorithm enabled\n");
         return;
     }
     
     long current_time = get_current_time_ms();
     long time_diff = current_time - last_move_time;
     
-    printf("update_ghost_movement: current_time=%ld, last_move_time=%ld, diff=%ld, interval=%d\n", 
-           current_time, last_move_time, time_diff, move_interval);
-    
     /* 检查是否到了移动时间 */
     if (time_diff >= move_interval) {
         /* 重新初始化幽灵信息（防止幽灵丢失） */
         init_ghosts_info();
         
-        printf("Moving %d ghosts with algorithm %d\n", ghost_count, current_algorithm);
-        
         /* 移动所有幽灵 */
         for (int i = 0; i < ghost_count; i++) {
-            printf("Moving ghost %d from (%d,%d)\n", i, ghosts[i].x, ghosts[i].y);
             move_ghost(i);
-            printf("Ghost %d moved to (%d,%d)\n", i, ghosts[i].x, ghosts[i].y);
         }
         
         last_move_time = current_time;

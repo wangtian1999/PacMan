@@ -440,10 +440,7 @@ void draw_board(Widget w, int width, int height, void *data) {
 void button_random_callback(Widget w, void *data) {
     (void)w; (void)data; /* 避免未使用参数警告 */
     
-    printf("Random Ghost button clicked!\n");
-    
     if (!g_game_state) {
-        printf("Error: g_game_state is NULL\n");
         return;
     }
     
@@ -451,11 +448,7 @@ void button_random_callback(Widget w, void *data) {
     g_game_state->auto_move_enabled = 0;
     
     /* 启动随机幽灵移动算法 */
-    printf("Setting algorithm to RANDOM (%d)\n", ALGO_RANDOM);
     set_algorithm(ALGO_RANDOM);
-    
-    printf("Algorithm enabled: %s\n", is_algorithm_enabled() ? "YES" : "NO");
-    printf("Current algorithm: %s\n", get_algorithm_name());
     
     update_status_display();
 }
@@ -463,10 +456,7 @@ void button_random_callback(Widget w, void *data) {
 void button_zigzag_callback(Widget w, void *data) {
     (void)w; (void)data; /* 避免未使用参数警告 */
     
-    printf("Zigzag Ghost button clicked!\n");
-    
     if (!g_game_state) {
-        printf("Error: g_game_state is NULL\n");
         return;
     }
     
@@ -474,11 +464,7 @@ void button_zigzag_callback(Widget w, void *data) {
     g_game_state->auto_move_enabled = 0;
     
     /* 启动Zig-Zag幽灵移动算法 */
-    printf("Setting algorithm to ZIGZAG (%d)\n", ALGO_ZIGZAG);
     set_algorithm(ALGO_ZIGZAG);
-    
-    printf("Algorithm enabled: %s\n", is_algorithm_enabled() ? "YES" : "NO");
-    printf("Current algorithm: %s\n", get_algorithm_name());
     
     update_status_display();
 }
@@ -486,10 +472,7 @@ void button_zigzag_callback(Widget w, void *data) {
 void button_dfs_callback(Widget w, void *data) {
     (void)w; (void)data; /* 避免未使用参数警告 */
     
-    printf("DFS Ghost button clicked!\n");
-    
     if (!g_game_state) {
-        printf("Error: g_game_state is NULL\n");
         return;
     }
     
@@ -497,11 +480,7 @@ void button_dfs_callback(Widget w, void *data) {
     g_game_state->auto_move_enabled = 0;
     
     /* 启动追踪幽灵移动算法 */
-    printf("Setting algorithm to DFS (%d)\n", ALGO_DFS);
     set_algorithm(ALGO_DFS);
-    
-    printf("Algorithm enabled: %s\n", is_algorithm_enabled() ? "YES" : "NO");
-    printf("Current algorithm: %s\n", get_algorithm_name());
     
     update_status_display();
 }
