@@ -431,8 +431,9 @@ void update_status_display(void) {
                     "🎉 VICTORY! 🎉 Score: %d | Lives: %d | Click 'Restart' for new game", 
                     g_game_state->score, g_game_state->lives);
         } else {
-            snprintf(status_text, sizeof(status_text), "Game Over - Score: %d | Click 'Restart' to play again", 
-                    g_game_state->score);
+            snprintf(status_text, sizeof(status_text), 
+                    "💀 GAME OVER 💀 Caught by Ghost! Final Score: %d | Moves: %d | Click 'Restart'", 
+                    g_game_state->score, g_game_state->moves_count);
         }
     } else {
         snprintf(status_text, sizeof(status_text), 

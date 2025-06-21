@@ -346,6 +346,14 @@ void set_board_cell(int x, int y, CellType type) {
     g_game_state->board[y][x] = type;
 }
 
+/* 检查是否碰到幽灵 */
+int is_ghost_collision(int x, int y) {
+    if (!g_game_state || !is_within_bounds(x, y)) return 0;
+    CellType cell = g_game_state->board[y][x];
+    return (cell == CELL_GHOST_RED || cell == CELL_GHOST_BLUE || 
+            cell == CELL_GHOST_PURPLE || cell == CELL_GHOST_ORANGE);
+}
+
 /* 检查移动是否有效 */
 int is_valid_move(int x, int y) {
     if (!is_within_bounds(x, y)) return 0;
@@ -353,10 +361,50 @@ int is_valid_move(int x, int y) {
     return 1;
 }
 
+/* 处理玩家死亡 */
+void handle_player_death(void) {
+    if (!g_game_state) return;
+    
+    g_game_state->lives--;
+    
+    /* 停止自动移动 */
+    g_game_state->auto_move_enabled = 0;
+    
+    if (g_game_state->lives <= 0) {
+        /* 游戏结束 */
+        g_game_state->game_over = 1;
+        printf("\n=== GAME OVER ===\n");
+        printf("你被幽灵抓住了！\n");
+        printf("最终分数: %d\n", g_game_state->score);
+        printf("总移动次数: %d\n", g_game_state->moves_count);
+        printf("================\n\n");
+    } else {
+        /* 还有生命，重置玩家位置 */
+        printf("\n=== 生命 -1 ===\n");
+        printf("剩余生命: %d\n", g_game_state->lives);
+        printf("==============\n\n");
+        
+        /* 重置玩家到起始位置 */
+        int old_x = g_game_state->player_pos.x;
+        int old_y = g_game_state->player_pos.y;
+        set_board_cell(old_x, old_y, CELL_EMPTY);
+        
+        g_game_state->player_pos.x = 1;
+        g_game_state->player_pos.y = 1;
+        set_board_cell(1, 1, CELL_PLAYER);
+    }
+}
+
 /* 移动玩家到指定位置 */
 int move_player_to(int new_x, int new_y) {
     if (!g_game_state || !is_valid_move(new_x, new_y)) {
         return 0; /* 移动失败 */
+    }
+    
+    /* 检查是否碰到幽灵 */
+    if (is_ghost_collision(new_x, new_y)) {
+        handle_player_death();
+        return 0; /* 移动失败，玩家死亡 */
     }
     
     /* 清除原位置的玩家 */

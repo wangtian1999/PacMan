@@ -32,7 +32,9 @@ PlayerPosition get_player_position(void);
 /* 碰撞检测和边界处理 */
 int is_within_bounds(int x, int y);
 int is_wall_collision(int x, int y);
+int is_ghost_collision(int x, int y);
 int check_dot_collection(int x, int y);
+void handle_player_death(void);
 
 /* 游戏状态查询 */
 int get_dots_collected(void);
