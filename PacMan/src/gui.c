@@ -523,7 +523,7 @@ void show_victory_message(void) {
     /* 更新状态显示以显示胜利信息 */
     update_status_display();
     
-    printf("🎉 游戏胜利！请点击主界面的 'Restart' 按钮重新开始游戏\n");
+    printf("*** 游戏胜利！请点击主界面的 'Restart' 按钮重新开始游戏\n");
 }
 
 /* 更新状态显示 */
@@ -535,11 +535,11 @@ void update_status_display(void) {
     } else if (is_game_over()) {
         if (is_game_won()) {
             snprintf(status_text, sizeof(status_text), 
-                    "🎉 VICTORY! 🎉 Score: %d | Lives: %d | Click 'Restart' for new game", 
+                    "*** VICTORY! *** Score: %d | Lives: %d | Click 'Restart' for new game", 
                     g_game_state->score, g_game_state->lives);
         } else {
             snprintf(status_text, sizeof(status_text), 
-                    "💀 GAME OVER 💀 Caught by Ghost! Final Score: %d | Moves: %d | Click 'Restart'", 
+                    "*** GAME OVER *** Caught by Ghost! Final Score: %d | Moves: %d | Click 'Restart'", 
                     g_game_state->score, g_game_state->moves_count);
         }
     } else {
