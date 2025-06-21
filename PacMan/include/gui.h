@@ -28,6 +28,8 @@ void show_victory_message(void);
 
 /* 游戏逻辑函数 */
 void move_player(Direction dir);
+void set_auto_move_direction(Direction dir);
+void process_auto_move(void);
 
 /* 按钮回调函数 */
 void button_up_callback(Widget w, void *data);

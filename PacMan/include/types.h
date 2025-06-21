@@ -56,7 +56,10 @@ typedef struct {
     int game_won;
     int lives;         /* 生命值 */
     int score;         /* 分数 */
-    int level;         /* 关卡 */
+    int level;         /* 自动移动功能 */
+    Direction auto_move_direction;  /* 自动移动方向 */
+    int auto_move_enabled;          /* 是否启用自动移动 */
+    long last_move_time;            /* 上次移动的时间戳（毫秒） */
 } GameState;
 
 #endif /* TYPES_H */

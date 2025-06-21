@@ -102,6 +102,9 @@ int init_game_state_with_size(int width, int height) {
     g_game_state->lives = 3;        /* 初始生命值 */
     g_game_state->score = 0;        /* 初始分数 */
     g_game_state->level = 1;        /* 初始关卡 */
+    g_game_state->auto_move_direction = DIR_RIGHT; /* 默认自动移动方向 */
+    g_game_state->auto_move_enabled = 0;           /* 默认关闭自动移动 */
+    g_game_state->last_move_time = 0;
     
     /* 豆子已在init_board中生成，无需额外生成 */
     
@@ -168,6 +171,9 @@ void reset_game_state(void) {
     g_game_state->lives = 3;        /* 重置生命值 */
     g_game_state->score = 0;        /* 重置分数 */
     g_game_state->level = 1;        /* 重置关卡 */
+    g_game_state->auto_move_direction = DIR_RIGHT; /* 重置自动移动方向 */
+    g_game_state->auto_move_enabled = 0;           /* 重置自动移动状态 */
+    g_game_state->last_move_time = 0;
     
     /* 豆子已在init_board中生成，无需额外生成 */
     

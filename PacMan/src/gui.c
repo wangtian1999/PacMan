@@ -6,6 +6,38 @@
 #include "gui.h"
 #include "game.h"
 #include "types.h"
+#include <time.h>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <sys/time.h>
+#include <unistd.h>
+#endif
+
+/* 获取当前时间毫秒数 */
+long get_current_time_ms(void) {
+#ifdef _WIN32
+    return GetTickCount();
+#else
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+#endif
+}
+
+/* 定时器回调函数 */
+void timer_callback(void *data) {
+    /* 避免编译器警告 */
+    (void)data;
+    
+    /* 定期更新显示，触发自动移动检查 */
+    if (g_game_state && g_game_state->auto_move_enabled) {
+        update_display();
+    }
+    
+    /* 重新设置定时器，实现循环调用 */
+    AddTimeOut(100, timer_callback, NULL);
+}
 
 /* 全局GUI组件 */
 Widget g_main_window;
@@ -155,6 +187,9 @@ int init_gui(int argc, char *argv[]) {
     
     /* 显示窗口 */
     ShowDisplay();
+    
+    /* 设置定时器，每100毫秒检查一次自动移动 */
+    AddTimeOut(100, timer_callback, NULL);
     
     /* 确保窗口获得键盘焦点 - Linux/X11增强版 */
     SetWidgetState(g_main_window, 1); /* 激活窗口 */
@@ -360,6 +395,9 @@ void draw_board(Widget w, int width, int height, void *data) {
 
 /* 更新显示 */
 void update_display(void) {
+    /* 处理自动移动 - 在每次更新显示时检查 */
+    process_auto_move();
+    
     if (g_drawing_area && g_game_state) {
         /* 重新绘制棋盘 */
         draw_board(g_drawing_area, get_board_width() * CELL_SIZE, 
@@ -452,30 +490,75 @@ void move_player(Direction dir) {
         if (is_game_won()) {
             show_victory_message();
         }
+        
+        /* 如果启用了自动移动且移动成功，继续朝同一方向移动 */
+        if (g_game_state && g_game_state->auto_move_enabled && 
+            g_game_state->auto_move_direction == dir) {
+            /* 更新上次移动时间 */
+            g_game_state->last_move_time = get_current_time_ms();
+        }
+    } else {
+        /* 移动失败，停止自动移动 */
+        if (g_game_state) {
+            g_game_state->auto_move_enabled = 0;
+        }
     }
     
     update_display();
 }
 
+/* 设置自动移动方向 */
+void set_auto_move_direction(Direction dir) {
+    if (!g_game_state) {
+        return;
+    }
+    
+    /* 启用自动移动并设置方向 */
+    g_game_state->auto_move_direction = dir;
+    g_game_state->auto_move_enabled = 1;
+    g_game_state->last_move_time = get_current_time_ms();
+    
+    /* 立即执行一次移动 */
+    move_player(dir);
+}
+
+/* 处理自动移动 */
+void process_auto_move(void) {
+    if (!g_game_state || !g_game_state->auto_move_enabled) {
+        return;
+    }
+    
+    if (is_game_over()) {
+        return;
+    }
+    
+    /* 检查是否已经过了0.5秒 */
+    long current_time = get_current_time_ms();
+    if (current_time - g_game_state->last_move_time >= 500) {
+        /* 继续朝当前方向移动 */
+        move_player(g_game_state->auto_move_direction);
+    }
+}
+
 /* 按钮回调函数 */
 void button_up_callback(Widget w, void *data) {
     (void)w; (void)data; /* 避免未使用参数警告 */
-    move_player(DIR_UP);
+    set_auto_move_direction(DIR_UP);
 }
 
 void button_down_callback(Widget w, void *data) {
     (void)w; (void)data; /* 避免未使用参数警告 */
-    move_player(DIR_DOWN);
+    set_auto_move_direction(DIR_DOWN);
 }
 
 void button_left_callback(Widget w, void *data) {
     (void)w; (void)data; /* 避免未使用参数警告 */
-    move_player(DIR_LEFT);
+    set_auto_move_direction(DIR_LEFT);
 }
 
 void button_right_callback(Widget w, void *data) {
     (void)w; (void)data; /* 避免未使用参数警告 */
-    move_player(DIR_RIGHT);
+    set_auto_move_direction(DIR_RIGHT);
 }
 
 void button_rejouer_callback(Widget w, void *data) {
@@ -525,16 +608,16 @@ void key_press_callback(Widget w, char *input, int up_or_down, void *data) {
         if (input[0] == 27 && input[1] == '[') { /* ESC序列，可能是方向键 */
             switch (input[2]) {
                 case 'A': /* 上方向键 */
-                    move_player(DIR_UP);
+                    set_auto_move_direction(DIR_UP);
                     return;
                 case 'B': /* 下方向键 */
-                    move_player(DIR_DOWN);
+                    set_auto_move_direction(DIR_DOWN);
                     return;
                 case 'C': /* 右方向键 */
-                    move_player(DIR_RIGHT);
+                    set_auto_move_direction(DIR_RIGHT);
                     return;
                 case 'D': /* 左方向键 */
-                    move_player(DIR_LEFT);
+                    set_auto_move_direction(DIR_LEFT);
                     return;
             }
         }
@@ -542,16 +625,16 @@ void key_press_callback(Widget w, char *input, int up_or_down, void *data) {
         /* 处理普通按键 */
         switch (input[0]) {
             case 'w': case 'W':
-                move_player(DIR_UP);
+                set_auto_move_direction(DIR_UP);
                 break;
             case 's': case 'S':
-                move_player(DIR_DOWN);
+                set_auto_move_direction(DIR_DOWN);
                 break;
             case 'a': case 'A':
-                move_player(DIR_LEFT);
+                set_auto_move_direction(DIR_LEFT);
                 break;
             case 'd': case 'D':
-                move_player(DIR_RIGHT);
+                set_auto_move_direction(DIR_RIGHT);
                 break;
             case 'r': case 'R':
                 button_rejouer_callback(w, data);
@@ -564,16 +647,16 @@ void key_press_callback(Widget w, char *input, int up_or_down, void *data) {
                 break;
             /* 数字键盘方向键支持 */
             case '8': /* 数字键盘8 - 上 */
-                move_player(DIR_UP);
+                set_auto_move_direction(DIR_UP);
                 break;
             case '2': /* 数字键盘2 - 下 */
-                move_player(DIR_DOWN);
+                set_auto_move_direction(DIR_DOWN);
                 break;
             case '4': /* 数字键盘4 - 左 */
-                move_player(DIR_LEFT);
+                set_auto_move_direction(DIR_LEFT);
                 break;
             case '6': /* 数字键盘6 - 右 */
-                move_player(DIR_RIGHT);
+                set_auto_move_direction(DIR_RIGHT);
                 break;
         }
     }
