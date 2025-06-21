@@ -6,6 +6,7 @@
 #include "gui.h"
 #include "game.h"
 #include "types.h"
+#include "algorithms.h"
 #include <time.h>
 #ifdef _WIN32
 #include <windows.h>
@@ -30,10 +31,22 @@ void timer_callback(void *data) {
     /* 避免编译器警告 */
     (void)data;
     
-    /* 定期更新显示，触发自动移动检查 */
-    if (g_game_state && g_game_state->auto_move_enabled) {
-        update_display();
+    /* 检查游戏状态 */
+    if (!g_game_state || is_game_over()) {
+        AddTimeOut(100, timer_callback, NULL);
+        return;
     }
+    
+    /* 幽灵自动移动逻辑 */
+    if (is_algorithm_enabled()) {
+        update_ghost_movement();
+    } else {
+        /* 传统自动移动处理（玩家） */
+        process_auto_move();
+    }
+    
+    /* 定期更新显示 */
+    update_display();
     
     /* 重新设置定时器，实现循环调用 */
     AddTimeOut(100, timer_callback, NULL);
@@ -53,6 +66,7 @@ static int color_dark_blue, color_light_blue, color_green;
 int init_gui(int argc, char *argv[]) {
     Widget button_up, button_down, button_left, button_right;
     Widget button_rejouer, button_aide, button_quit;
+    Widget button_random, button_zigzag, button_dfs, button_stop_algo;
     
     /* 初始化libsx */
     if (OpenDisplay(argc, argv) == 0) {
@@ -117,6 +131,17 @@ int init_gui(int argc, char *argv[]) {
         return -1;
     }
     
+    /* 创建幽灵算法按钮 */
+    button_random = MakeButton("Random Ghost", button_random_callback, NULL);
+    button_zigzag = MakeButton("ZigZag Ghost", button_zigzag_callback, NULL);
+    button_dfs = MakeButton("Hunt Ghost", button_dfs_callback, NULL);
+    button_stop_algo = MakeButton("Stop Ghost", button_stop_algo_callback, NULL);
+    
+    if (!button_random || !button_zigzag || !button_dfs || !button_stop_algo) {
+        fprintf(stderr, "错误: 算法按钮创建失败\n");
+        return -1;
+    }
+    
     /* 创建状态显示标签 */
     g_status_label = MakeLabel("Moves: 0  Collected: 0  Remaining: 0");
     
@@ -128,7 +153,8 @@ int init_gui(int argc, char *argv[]) {
     /* 设置布局 - 添加错误检查 */
     /* 检查所有widget是否有效 */
     if (!g_drawing_area || !button_up || !button_left || !button_down || !button_right ||
-        !button_rejouer || !button_aide || !button_quit || !g_status_label) {
+        !button_rejouer || !button_aide || !button_quit || !g_status_label ||
+        !button_random || !button_zigzag || !button_dfs || !button_stop_algo) {
         fprintf(stderr, "错误: 某些GUI组件创建失败\n");
         return -1;
     }
@@ -167,9 +193,26 @@ int init_gui(int argc, char *argv[]) {
         SetWidgetPos(button_quit, PLACE_UNDER, button_left, PLACE_RIGHT, button_aide);
     }
     
-    /* 状态标签布局 - 在功能按钮下方 */
-    if (g_status_label && button_rejouer) {
-        SetWidgetPos(g_status_label, PLACE_UNDER, button_rejouer, NO_CARE, NULL);
+    /* 算法按钮布局 - 在功能按钮下方 */
+    if (button_random && button_rejouer) {
+        SetWidgetPos(button_random, PLACE_UNDER, button_rejouer, NO_CARE, NULL);
+    }
+    
+    if (button_zigzag && button_rejouer) {
+        SetWidgetPos(button_zigzag, PLACE_UNDER, button_rejouer, PLACE_RIGHT, button_random);
+    }
+    
+    if (button_dfs && button_rejouer) {
+        SetWidgetPos(button_dfs, PLACE_UNDER, button_rejouer, PLACE_RIGHT, button_zigzag);
+    }
+    
+    if (button_stop_algo && button_rejouer) {
+        SetWidgetPos(button_stop_algo, PLACE_UNDER, button_rejouer, PLACE_RIGHT, button_dfs);
+    }
+    
+    /* 状态标签布局 - 在算法按钮下方 */
+    if (g_status_label && button_random) {
+        SetWidgetPos(g_status_label, PLACE_UNDER, button_random, NO_CARE, NULL);
     }
     
     /* 设置键盘事件处理 */
@@ -393,6 +436,91 @@ void draw_board(Widget w, int width, int height, void *data) {
     }
 }
 
+/* 算法按钮回调函数 */
+void button_random_callback(Widget w, void *data) {
+    (void)w; (void)data; /* 避免未使用参数警告 */
+    
+    printf("Random Ghost button clicked!\n");
+    
+    if (!g_game_state) {
+        printf("Error: g_game_state is NULL\n");
+        return;
+    }
+    
+    /* 停止当前自动移动 */
+    g_game_state->auto_move_enabled = 0;
+    
+    /* 启动随机幽灵移动算法 */
+    printf("Setting algorithm to RANDOM (%d)\n", ALGO_RANDOM);
+    set_algorithm(ALGO_RANDOM);
+    
+    printf("Algorithm enabled: %s\n", is_algorithm_enabled() ? "YES" : "NO");
+    printf("Current algorithm: %s\n", get_algorithm_name());
+    
+    update_status_display();
+}
+
+void button_zigzag_callback(Widget w, void *data) {
+    (void)w; (void)data; /* 避免未使用参数警告 */
+    
+    printf("Zigzag Ghost button clicked!\n");
+    
+    if (!g_game_state) {
+        printf("Error: g_game_state is NULL\n");
+        return;
+    }
+    
+    /* 停止当前自动移动 */
+    g_game_state->auto_move_enabled = 0;
+    
+    /* 启动Zig-Zag幽灵移动算法 */
+    printf("Setting algorithm to ZIGZAG (%d)\n", ALGO_ZIGZAG);
+    set_algorithm(ALGO_ZIGZAG);
+    
+    printf("Algorithm enabled: %s\n", is_algorithm_enabled() ? "YES" : "NO");
+    printf("Current algorithm: %s\n", get_algorithm_name());
+    
+    update_status_display();
+}
+
+void button_dfs_callback(Widget w, void *data) {
+    (void)w; (void)data; /* 避免未使用参数警告 */
+    
+    printf("DFS Ghost button clicked!\n");
+    
+    if (!g_game_state) {
+        printf("Error: g_game_state is NULL\n");
+        return;
+    }
+    
+    /* 停止当前自动移动 */
+    g_game_state->auto_move_enabled = 0;
+    
+    /* 启动追踪幽灵移动算法 */
+    printf("Setting algorithm to DFS (%d)\n", ALGO_DFS);
+    set_algorithm(ALGO_DFS);
+    
+    printf("Algorithm enabled: %s\n", is_algorithm_enabled() ? "YES" : "NO");
+    printf("Current algorithm: %s\n", get_algorithm_name());
+    
+    update_status_display();
+}
+
+void button_stop_algo_callback(Widget w, void *data) {
+    (void)w; (void)data; /* 避免未使用参数警告 */
+    
+    if (!g_game_state) {
+        return;
+    }
+    
+    /* 停止所有幽灵算法和自动移动 */
+    g_game_state->auto_move_enabled = 0;
+    stop_algorithm();
+    
+    printf("停止所有幽灵自动算法\n");
+    update_status_display();
+}
+
 /* 更新显示 */
 void update_display(void) {
     /* 处理自动移动 - 在每次更新显示时检查 */
@@ -436,14 +564,26 @@ void update_status_display(void) {
                     g_game_state->score, g_game_state->moves_count);
         }
     } else {
-        snprintf(status_text, sizeof(status_text), 
-                "Score: %d | Lives: %d | Level: %d | Dots: %d/%d | Moves: %d", 
-                g_game_state->score,
-                g_game_state->lives,
-                g_game_state->level,
-                g_game_state->dots_collected,
-                g_game_state->total_dots,
-                get_moves_count());
+        /* 检查是否有活跃的算法 */
+        if (is_algorithm_enabled()) {
+            snprintf(status_text, sizeof(status_text), 
+                    "Score: %d | Lives: %d | Dots: %d/%d | Moves: %d | Algorithm: %s", 
+                    g_game_state->score,
+                    g_game_state->lives,
+                    g_game_state->dots_collected,
+                    g_game_state->total_dots,
+                    get_moves_count(),
+                    get_algorithm_name());
+        } else {
+            snprintf(status_text, sizeof(status_text), 
+                    "Score: %d | Lives: %d | Level: %d | Dots: %d/%d | Moves: %d", 
+                    g_game_state->score,
+                    g_game_state->lives,
+                    g_game_state->level,
+                    g_game_state->dots_collected,
+                    g_game_state->total_dots,
+                    get_moves_count());
+        }
     }
     
     /* 更新状态标签 */

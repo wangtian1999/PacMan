@@ -15,6 +15,10 @@
 #define AIDE_BUTTON 8
 #define QUIT_BUTTON 9
 #define STATUS_LABEL 10
+#define RANDOM_BUTTON 11
+#define ZIGZAG_BUTTON 12
+#define DFS_BUTTON 13
+#define STOP_ALGO_BUTTON 14
 
 /* GUI初始化和销毁函数 */
 int init_gui(int argc, char *argv[]);
@@ -39,6 +43,12 @@ void button_right_callback(Widget w, void *data);
 void button_rejouer_callback(Widget w, void *data);
 void button_aide_callback(Widget w, void *data);
 void button_quit_callback(Widget w, void *data);
+
+/* 算法按钮回调函数 */
+void button_random_callback(Widget w, void *data);
+void button_zigzag_callback(Widget w, void *data);
+void button_dfs_callback(Widget w, void *data);
+void button_stop_algo_callback(Widget w, void *data);
 
 /* 胜利提示框回调函数 */
 

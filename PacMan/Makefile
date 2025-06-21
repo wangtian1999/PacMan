@@ -9,7 +9,7 @@ LIBPATH = -L/usr/local/lib
 SRCDIR = src
 OBJDIR = obj
 # 包含所有必要的源文件
-SOURCES = $(SRCDIR)/main.c $(SRCDIR)/gui.c $(SRCDIR)/game.c
+SOURCES = $(SRCDIR)/main.c $(SRCDIR)/gui.c $(SRCDIR)/game.c $(SRCDIR)/algorithms.c
 OBJECTS = $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 # 可执行文件目标
 TARGET = pacman
