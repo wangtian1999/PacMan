@@ -40,21 +40,17 @@ int main(int argc, char *argv[]) {
     }
     
     /* 先初始化游戏状态 */
-    printf("正在初始化游戏状态...\n");
     if (init_game_state() != 0) {
         fprintf(stderr, "游戏状态初始化失败\n");
         return 1;
     }
-    printf("游戏状态初始化完成\n");
     
     /* 然后初始化GUI */
-    printf("正在初始化GUI...\n");
     if (init_gui(argc, argv) != 0) {
         fprintf(stderr, "GUI初始化失败\n");
         cleanup_game_state();
         return 1;
     }
-    printf("GUI初始化完成\n");
     
     /* 进入主循环 */
     MainLoop();

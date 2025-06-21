@@ -24,6 +24,7 @@ void cleanup_gui(void);
 void draw_board(Widget w, int width, int height, void *data);
 void update_display(void);
 void update_status_display(void);
+void show_victory_message(void);
 
 /* 游戏逻辑函数 */
 void move_player(Direction dir);
@@ -36,6 +37,9 @@ void button_right_callback(Widget w, void *data);
 void button_rejouer_callback(Widget w, void *data);
 void button_aide_callback(Widget w, void *data);
 void button_quit_callback(Widget w, void *data);
+
+/* 胜利提示框回调函数 */
+
 
 /* 键盘事件处理 */
 void key_press_callback(Widget w, char *input, int up_or_down, void *data);

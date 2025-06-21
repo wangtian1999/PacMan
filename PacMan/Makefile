@@ -1,14 +1,14 @@
 # PacMan项目Makefile
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c99
-LIBS = -lsx -lX11 -lXt
+LIBS = -lsx -lX11 -lXt -lpthread
 INCLUDE = -I/usr/local/include -I./include
 LIBPATH = -L/usr/local/lib
 
 # 源文件和目标文件
 SRCDIR = src
 OBJDIR = obj
-# 原始版本只编译main.c和gui.c
+# 包含所有必要的源文件
 SOURCES = $(SRCDIR)/main.c $(SRCDIR)/gui.c $(SRCDIR)/game.c
 OBJECTS = $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 # 可执行文件目标

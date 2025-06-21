@@ -40,10 +40,7 @@ void collect_dot(void);
 void check_win_condition(void);
 void update_game_statistics(void);
 
-/* 调试和工具函数 */
-void print_board_state(void);
-void print_game_statistics(void);
-int validate_game_state(void);
+
 
 /* 全局游戏状态访问 */
 extern GameState *g_game_state;
