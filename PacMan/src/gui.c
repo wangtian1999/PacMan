@@ -14,6 +14,8 @@ Widget g_status_label;
 
 /* 颜色定义 */
 static int color_black, color_white, color_blue, color_yellow, color_red;
+static int color_pink, color_cyan, color_purple, color_orange;
+static int color_dark_blue, color_light_blue, color_green;
 
 /* 初始化GUI */
 int init_gui(int argc, char *argv[]) {
@@ -39,16 +41,23 @@ int init_gui(int argc, char *argv[]) {
     color_blue = GetNamedColor("blue");
     color_yellow = GetNamedColor("yellow");
     color_red = GetNamedColor("red");
+    color_pink = GetNamedColor("pink");
+    color_cyan = GetNamedColor("cyan");
+    color_purple = GetNamedColor("purple");
+    color_orange = GetNamedColor("orange");
+    color_dark_blue = GetNamedColor("navy");
+    color_light_blue = GetNamedColor("lightblue");
+    color_green = GetNamedColor("green");
     
     /* 检查颜色是否成功初始化 */
     if (color_black == -1 || color_white == -1 || color_blue == -1 || 
-        color_yellow == -1 || color_red == -1) {
+        color_yellow == -1 || color_red == -1 || color_pink == -1) {
         fprintf(stderr, "警告: 某些颜色初始化失败\n");
     }
     
-    /* 创建绘图区域 */
-    g_drawing_area = MakeDrawArea(BOARD_WIDTH * CELL_SIZE, 
-                                  BOARD_HEIGHT * CELL_SIZE, 
+    /* 创建绘图区域 - 使用动态网格大小 */
+    g_drawing_area = MakeDrawArea(get_board_width() * CELL_SIZE, 
+                                  get_board_height() * CELL_SIZE, 
                                   draw_board, NULL);
     if (!g_drawing_area) {
         fprintf(stderr, "错误: 无法创建绘图区域\n");
@@ -189,21 +198,21 @@ void draw_board(Widget w, int width, int height, void *data) {
         return;
     }
     
-    /* 清空绘图区域 */
-    SetColor(color_white);
+    /* 设置黑色背景 */
+    SetColor(color_black);
     DrawFilledBox(0, 0, width, height);
     
     if (!g_game_state) {
         printf("警告: 游戏状态未初始化，绘制空白棋盘\n");
         /* 绘制网格线作为占位符 */
         SetColor(color_black);
-        for (i = 0; i <= BOARD_HEIGHT; i++) {
+        for (i = 0; i <= get_board_height(); i++) {
             int y_line = i * CELL_SIZE;
             if (y_line < height) {
                 DrawLine(0, y_line, width, y_line);
             }
         }
-        for (j = 0; j <= BOARD_WIDTH; j++) {
+        for (j = 0; j <= get_board_width(); j++) {
             int x_line = j * CELL_SIZE;
             if (x_line < width) {
                 DrawLine(x_line, 0, x_line, height);
@@ -213,8 +222,8 @@ void draw_board(Widget w, int width, int height, void *data) {
     }
     
     /* 绘制棋盘 */
-    for (i = 0; i < BOARD_HEIGHT && i < 15; i++) {
-        for (j = 0; j < BOARD_WIDTH && j < 20; j++) {
+    for (i = 0; i < get_board_height(); i++) {
+        for (j = 0; j < get_board_width(); j++) {
             x = j * CELL_SIZE;
             y = i * CELL_SIZE;
             
@@ -223,27 +232,126 @@ void draw_board(Widget w, int width, int height, void *data) {
             
             switch (g_game_state->board[i][j]) {
                 case CELL_WALL:
-                    SetColor(color_black);
+                    /* 绘制粉色墙壁 */
+                    SetColor(color_pink);
                     DrawFilledBox(x, y, CELL_SIZE, CELL_SIZE);
+                    /* 添加边框 */
+                    SetColor(color_blue);
+                    DrawBox(x, y, CELL_SIZE, CELL_SIZE);
                     break;
                     
                 case CELL_DOT:
-                    SetColor(color_blue);
+                    /* 绘制白色小圆点 */
+                    SetColor(color_white);
+                    if (CELL_SIZE >= 6) {
+                        int dot_size = 3;
+                        int center_x = x + CELL_SIZE/2;
+                        int center_y = y + CELL_SIZE/2;
+                        DrawFilledBox(center_x - dot_size/2, center_y - dot_size/2, dot_size, dot_size);
+                    }
+                    break;
+                    
+                case CELL_POWER_DOT:
+                    /* 绘制大能量豆 */
+                    SetColor(color_white);
                     if (CELL_SIZE >= 8) {
-                        DrawFilledBox(x + CELL_SIZE/2 - 2, y + CELL_SIZE/2 - 2, 4, 4);
+                        int dot_size = 6;
+                        int center_x = x + CELL_SIZE/2;
+                        int center_y = y + CELL_SIZE/2;
+                        DrawFilledBox(center_x - dot_size/2, center_y - dot_size/2, dot_size, dot_size);
                     }
                     break;
                     
                 case CELL_PLAYER:
+                    /* 绘制黄色PacMan */
                     SetColor(color_yellow);
-                    if (CELL_SIZE >= 6) {
-                        DrawFilledBox(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+                    if (CELL_SIZE >= 8) {
+                        int pac_size = CELL_SIZE - 6;
+                        DrawFilledBox(x + 3, y + 3, pac_size, pac_size);
+                        /* 添加黑色边框 */
+                        SetColor(color_black);
+                        DrawBox(x + 3, y + 3, pac_size, pac_size);
+                    }
+                    break;
+                    
+                case CELL_GHOST_RED:
+                    /* 绘制红色幽灵 */
+                    SetColor(color_red);
+                    if (CELL_SIZE >= 8) {
+                        int ghost_size = CELL_SIZE - 4;
+                        DrawFilledBox(x + 2, y + 2, ghost_size, ghost_size);
+                        /* 添加眼睛 */
+                        SetColor(color_white);
+                        DrawFilledBox(x + 6, y + 6, 4, 4);
+                        DrawFilledBox(x + 14, y + 6, 4, 4);
+                        SetColor(color_black);
+                        DrawFilledBox(x + 7, y + 7, 2, 2);
+                        DrawFilledBox(x + 15, y + 7, 2, 2);
+                    }
+                    break;
+                    
+                case CELL_GHOST_BLUE:
+                    /* 绘制蓝色幽灵 */
+                    SetColor(color_cyan);
+                    if (CELL_SIZE >= 8) {
+                        int ghost_size = CELL_SIZE - 4;
+                        DrawFilledBox(x + 2, y + 2, ghost_size, ghost_size);
+                        /* 添加眼睛 */
+                        SetColor(color_white);
+                        DrawFilledBox(x + 6, y + 6, 4, 4);
+                        DrawFilledBox(x + 14, y + 6, 4, 4);
+                        SetColor(color_black);
+                        DrawFilledBox(x + 7, y + 7, 2, 2);
+                        DrawFilledBox(x + 15, y + 7, 2, 2);
+                    }
+                    break;
+                    
+                case CELL_GHOST_PURPLE:
+                    /* 绘制紫色幽灵 */
+                    SetColor(color_purple);
+                    if (CELL_SIZE >= 8) {
+                        int ghost_size = CELL_SIZE - 4;
+                        DrawFilledBox(x + 2, y + 2, ghost_size, ghost_size);
+                        /* 添加眼睛 */
+                        SetColor(color_white);
+                        DrawFilledBox(x + 6, y + 6, 4, 4);
+                        DrawFilledBox(x + 14, y + 6, 4, 4);
+                        SetColor(color_black);
+                        DrawFilledBox(x + 7, y + 7, 2, 2);
+                        DrawFilledBox(x + 15, y + 7, 2, 2);
+                    }
+                    break;
+                    
+                case CELL_GHOST_ORANGE:
+                    /* 绘制橙色幽灵 */
+                    SetColor(color_orange);
+                    if (CELL_SIZE >= 8) {
+                        int ghost_size = CELL_SIZE - 4;
+                        DrawFilledBox(x + 2, y + 2, ghost_size, ghost_size);
+                        /* 添加眼睛 */
+                        SetColor(color_white);
+                        DrawFilledBox(x + 6, y + 6, 4, 4);
+                        DrawFilledBox(x + 14, y + 6, 4, 4);
+                        SetColor(color_black);
+                        DrawFilledBox(x + 7, y + 7, 2, 2);
+                        DrawFilledBox(x + 15, y + 7, 2, 2);
+                    }
+                    break;
+                    
+                case CELL_FRUIT:
+                    /* 绘制水果奖励 */
+                    SetColor(color_green);
+                    if (CELL_SIZE >= 8) {
+                        int fruit_size = CELL_SIZE - 8;
+                        DrawFilledBox(x + 4, y + 4, fruit_size, fruit_size);
                     }
                     break;
                     
                 case CELL_EMPTY:
                 default:
-                    /* 空格不需要绘制 */
+                    /* 空格显示黑色通道 */
+                    SetColor(color_black);
+                    DrawFilledBox(x, y, CELL_SIZE, CELL_SIZE);
                     break;
             }
         }
@@ -254,8 +362,8 @@ void draw_board(Widget w, int width, int height, void *data) {
 void update_display(void) {
     if (g_drawing_area && g_game_state) {
         /* 重新绘制棋盘 */
-        draw_board(g_drawing_area, BOARD_WIDTH * CELL_SIZE, 
-                   BOARD_HEIGHT * CELL_SIZE, NULL);
+        draw_board(g_drawing_area, get_board_width() * CELL_SIZE, 
+                   get_board_height() * CELL_SIZE, NULL);
     }
     update_status_display();
 }
@@ -282,15 +390,20 @@ void update_status_display(void) {
     } else if (is_game_over()) {
         if (is_game_won()) {
             snprintf(status_text, sizeof(status_text), 
-                    "🎉 VICTORY! 🎉 Completed in %d moves! Click 'Restart' for new game", 
-                    get_moves_count());
+                    "🎉 VICTORY! 🎉 Score: %d | Lives: %d | Click 'Restart' for new game", 
+                    g_game_state->score, g_game_state->lives);
         } else {
-            snprintf(status_text, sizeof(status_text), "Game Over - Click 'Restart' to play again");
+            snprintf(status_text, sizeof(status_text), "Game Over - Score: %d | Click 'Restart' to play again", 
+                    g_game_state->score);
         }
     } else {
         snprintf(status_text, sizeof(status_text), 
-                "Remaining: %d | Moves: %d | Use WASD or buttons to move", 
-                get_remaining_dots(), 
+                "Score: %d | Lives: %d | Level: %d | Dots: %d/%d | Moves: %d", 
+                g_game_state->score,
+                g_game_state->lives,
+                g_game_state->level,
+                g_game_state->dots_collected,
+                g_game_state->total_dots,
                 get_moves_count());
     }
     

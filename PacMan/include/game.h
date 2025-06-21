@@ -5,12 +5,20 @@
 
 /* 游戏初始化和清理函数 */
 int init_game_state(void);
+int init_game_state_with_size(int width, int height);
 void cleanup_game_state(void);
 void reset_game_state(void);
+
+/* 网格大小管理函数 */
+void set_board_size(int width, int height);
+int get_board_width(void);
+int get_board_height(void);
 
 /* 棋盘管理函数 */
 void init_board(void);
 void generate_random_dots(int num_dots);
+void add_ghosts(void);
+void add_power_dots(void);
 void clear_board_cell(int x, int y);
 CellType get_board_cell(int x, int y);
 void set_board_cell(int x, int y, CellType type);
@@ -37,6 +45,7 @@ int is_game_won(void);
 /* 游戏逻辑更新 */
 void increment_moves(void);
 void collect_dot(void);
+void collect_power_dot(void);
 void check_win_condition(void);
 void update_game_statistics(void);
 
