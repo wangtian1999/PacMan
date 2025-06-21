@@ -103,8 +103,7 @@ int init_game_state_with_size(int width, int height) {
     g_game_state->score = 0;        /* 初始分数 */
     g_game_state->level = 1;        /* 初始关卡 */
     
-    /* 生成随机豆子 */
-    generate_random_dots(50); /* 生成50个豆子 */
+    /* 豆子已在init_board中生成，无需额外生成 */
     
     /* 添加一些幽灵 */
     add_ghosts();
@@ -170,8 +169,7 @@ void reset_game_state(void) {
     g_game_state->score = 0;        /* 重置分数 */
     g_game_state->level = 1;        /* 重置关卡 */
     
-    /* 重新生成豆子 */
-    generate_random_dots(50);
+    /* 豆子已在init_board中生成，无需额外生成 */
     
     /* 重新添加幽灵 */
     add_ghosts();
@@ -195,12 +193,108 @@ void reset_game_state(void) {
 void init_board(void) {
     if (!g_game_state) return;
     
+    /* 首先将所有格子设为空 */
     for (int i = 0; i < BOARD_HEIGHT; i++) {
         for (int j = 0; j < BOARD_WIDTH; j++) {
-            /* 边界设为墙 */
+            g_game_state->board[i][j] = CELL_EMPTY;
+        }
+    }
+    
+    /* 生成四周边界墙壁 */
+    for (int i = 0; i < BOARD_HEIGHT; i++) {
+        for (int j = 0; j < BOARD_WIDTH; j++) {
             if (i == 0 || i == BOARD_HEIGHT-1 || j == 0 || j == BOARD_WIDTH-1) {
                 g_game_state->board[i][j] = CELL_WALL;
+            }
+        }
+    }
+    
+    /* 计算内部区域的格子数，并随机生成内部墙壁 */
+    int inner_width = BOARD_WIDTH - 2;
+    int inner_height = BOARD_HEIGHT - 2;
+    int inner_cells = inner_width * inner_height;
+    int inner_wall_count = (int)(inner_cells * 0.2); /* 内部墙壁数量为内部区域的20% */
+    
+    /* 确保内部墙壁数量不超过内部可用格子数 */
+    if (inner_wall_count > inner_cells - 1) { /* 至少保留玩家位置 */
+        inner_wall_count = inner_cells - 1;
+    }
+    
+    /* 在内部区域随机放置墙壁，确保不创建封闭区域 */
+    int placed_walls = 0;
+    int max_attempts = inner_wall_count * 10; /* 防止无限循环 */
+    int attempts = 0;
+    
+    while (placed_walls < inner_wall_count && attempts < max_attempts) {
+        int x = 1 + rand() % inner_width;  /* 内部区域x坐标 */
+        int y = 1 + rand() % inner_height; /* 内部区域y坐标 */
+        
+        /* 确保不在玩家初始位置(1,1)且该位置不是墙 */
+        if ((x != 1 || y != 1) && g_game_state->board[y][x] != CELL_WALL) {
+            /* 临时放置墙壁 */
+            g_game_state->board[y][x] = CELL_WALL;
+            
+            /* 检查是否会创建封闭区域 - 简单策略：确保周围至少有2个方向可通行 */
+            int passable_directions = 0;
+            int dx[] = {0, 1, 0, -1}; /* 右、下、左、上 */
+            int dy[] = {1, 0, -1, 0};
+            
+            for (int dir = 0; dir < 4; dir++) {
+                int nx = x + dx[dir];
+                int ny = y + dy[dir];
+                if (nx >= 1 && nx < BOARD_WIDTH-1 && ny >= 1 && ny < BOARD_HEIGHT-1) {
+                    if (g_game_state->board[ny][nx] != CELL_WALL) {
+                        passable_directions++;
+                    }
+                }
+            }
+            
+            /* 如果周围可通行方向少于2个，撤销墙壁放置 */
+            if (passable_directions < 2) {
+                g_game_state->board[y][x] = CELL_EMPTY;
             } else {
+                placed_walls++;
+            }
+        }
+        attempts++;
+    }
+    
+    /* 先在所有非墙壁位置放置豆子 */
+    for (int i = 0; i < BOARD_HEIGHT; i++) {
+        for (int j = 0; j < BOARD_WIDTH; j++) {
+            if (g_game_state->board[i][j] == CELL_EMPTY && (j != 1 || i != 1)) {
+                g_game_state->board[i][j] = CELL_DOT;
+            }
+        }
+    }
+    
+    /* 使用洪水填充算法标记从玩家位置可到达的区域 */
+    int visited[BOARD_HEIGHT][BOARD_WIDTH];
+    for (int i = 0; i < BOARD_HEIGHT; i++) {
+        for (int j = 0; j < BOARD_WIDTH; j++) {
+            visited[i][j] = 0;
+        }
+    }
+    
+    /* 简单的递归洪水填充函数 */
+    void flood_fill(int x, int y) {
+        if (x < 0 || x >= BOARD_WIDTH || y < 0 || y >= BOARD_HEIGHT) return;
+        if (visited[y][x] || g_game_state->board[y][x] == CELL_WALL) return;
+        
+        visited[y][x] = 1;
+        flood_fill(x+1, y);
+        flood_fill(x-1, y);
+        flood_fill(x, y+1);
+        flood_fill(x, y-1);
+    }
+    
+    /* 从玩家起始位置开始洪水填充 */
+    flood_fill(1, 1);
+    
+    /* 清除不可到达区域的豆子 */
+    for (int i = 0; i < BOARD_HEIGHT; i++) {
+        for (int j = 0; j < BOARD_WIDTH; j++) {
+            if (!visited[i][j] && (g_game_state->board[i][j] == CELL_DOT || g_game_state->board[i][j] == CELL_POWER_DOT)) {
                 g_game_state->board[i][j] = CELL_EMPTY;
             }
         }
@@ -388,14 +482,6 @@ void check_win_condition(void) {
 void add_ghosts(void) {
     if (!g_game_state) return;
     
-    /* 在固定位置添加4个幽灵 */
-    int ghost_positions[][2] = {
-        {BOARD_WIDTH - 3, 2},     /* 红色幽灵 */
-        {BOARD_WIDTH - 3, BOARD_HEIGHT - 3}, /* 蓝色幽灵 */
-        {3, BOARD_HEIGHT - 3},    /* 紫色幽灵 */
-        {BOARD_WIDTH - 6, 5}      /* 橙色幽灵 */
-    };
-    
     CellType ghost_types[] = {
         CELL_GHOST_RED,
         CELL_GHOST_BLUE, 
@@ -403,11 +489,22 @@ void add_ghosts(void) {
         CELL_GHOST_ORANGE
     };
     
+    /* 随机放置4个幽灵 */
     for (int i = 0; i < 4; i++) {
-        int x = ghost_positions[i][0];
-        int y = ghost_positions[i][1];
-        if (is_within_bounds(x, y) && g_game_state->board[y][x] == CELL_EMPTY) {
-            g_game_state->board[y][x] = ghost_types[i];
+        int placed = 0;
+        int attempts = 0;
+        int max_attempts = 100;
+        
+        while (!placed && attempts < max_attempts) {
+            int x = rand() % BOARD_WIDTH;
+            int y = rand() % BOARD_HEIGHT;
+            
+            /* 确保不在玩家位置且该位置是豆子 */
+            if ((x != 1 || y != 1) && g_game_state->board[y][x] == CELL_DOT) {
+                g_game_state->board[y][x] = ghost_types[i];
+                placed = 1;
+            }
+            attempts++;
         }
     }
 }
@@ -416,19 +513,22 @@ void add_ghosts(void) {
 void add_power_dots(void) {
     if (!g_game_state) return;
     
-    /* 在四个角落附近添加能量豆 */
-    int power_positions[][2] = {
-        {2, 2},
-        {BOARD_WIDTH - 3, 2},
-        {2, BOARD_HEIGHT - 3},
-        {BOARD_WIDTH - 3, BOARD_HEIGHT - 3}
-    };
-    
+    /* 随机放置4个能量豆 */
     for (int i = 0; i < 4; i++) {
-        int x = power_positions[i][0];
-        int y = power_positions[i][1];
-        if (is_within_bounds(x, y) && g_game_state->board[y][x] == CELL_EMPTY) {
-            g_game_state->board[y][x] = CELL_POWER_DOT;
+        int placed = 0;
+        int attempts = 0;
+        int max_attempts = 100;
+        
+        while (!placed && attempts < max_attempts) {
+            int x = rand() % BOARD_WIDTH;
+            int y = rand() % BOARD_HEIGHT;
+            
+            /* 确保不在玩家位置且该位置是豆子 */
+            if ((x != 1 || y != 1) && g_game_state->board[y][x] == CELL_DOT) {
+                g_game_state->board[y][x] = CELL_POWER_DOT;
+                placed = 1;
+            }
+            attempts++;
         }
     }
 }
